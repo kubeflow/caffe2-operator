@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/helper"
+	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
+	"github.com/kubeflow/caffe2-operator/pkg/util"
+
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	batch "k8s.io/api/batch/v1"
@@ -29,11 +33,6 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-
-	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
-	// TOOO(jlewi): Rename to apiErrors
-	"github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/helper"
-	"github.com/kubeflow/caffe2-operator/pkg/util"
 )
 
 const (
@@ -60,13 +59,11 @@ type Caffe2ReplicaSetInterface interface {
 // Caffe2Config is a struct representing the TensorFlow config. This struct is turned into an environment
 // which is used by TensorFlow processes to configure themselves.
 type Caffe2Config struct {
-	// Cluster represents a TensorFlow ClusterSpec.
+	// Cluster represents a Caffe2 ClusterSpec.
 	// See: https://www.tensorflow.org/api_docs/python/tf/train/ClusterSpechttps://www.tensorflow.org/api_docs/python/tf/train/ClusterSpec
-	Cluster ClusterSpec `json:"cluster"`
-	Task    TaskSpec    `json:"task"`
-	// Environment is used by tensorflow.contrib.learn.python.learn in versions <= 1.3
-	// TODO(jlewi): I don't think it is used in versions TF >- 1.4. So we can eventually get rid of it.
-	Environment string `json:"environment"`
+	Cluster     ClusterSpec `json:"cluster"`
+	Task        TaskSpec    `json:"task"`
+	Environment string      `json:"environment"`
 }
 
 func NewCaffe2ReplicaSet(clientSet kubernetes.Interface, recorder record.EventRecorder, caffe2ReplicaSpec api.Caffe2ReplicaSpec, job *TrainingJob) (*Caffe2ReplicaSet, error) {
@@ -267,7 +264,7 @@ func (s *Caffe2ReplicaSet) Delete() error {
 	}
 
 	// Services doesn't support DeleteCollection so we delete them individually.
-	// TODO(jlewi): We should check if this has changed with K8s 1.8 or other releases.
+	// TODO: We should check if this has changed with K8s 1.8 or other releases.
 	for index := int32(0); index < *s.Spec.Replicas; index++ {
 		log.V(1).Infof("Deleting Service %v:%v", s.Job.job.ObjectMeta.Namespace, s.jobName((index)))
 		err = s.ClientSet.CoreV1().Services(s.Job.job.ObjectMeta.Namespace).Delete(s.jobName(index), &meta_v1.DeleteOptions{})
@@ -362,14 +359,14 @@ func (s *Caffe2ReplicaSet) GetSingleReplicaStatus(index int32) api.ReplicaState 
 		return api.ReplicaStateFailed
 	}
 
-	// TODO(jlewi): Handle errors. We need to get the pod and looking at recent container exits.
+	// TODO: Handle errors. We need to get the pod and looking at recent container exits.
 	l, err := s.ClientSet.CoreV1().Pods(s.Job.job.ObjectMeta.Namespace).List(meta_v1.ListOptions{
-		// TODO(jlewi): Why isn't the label selector working?
+		// TODO: Why isn't the label selector working?
 		LabelSelector: selector,
 	})
 
 	if err != nil {
-		// TODO(jlewi): Are there errors that should be treated as retryable errors?
+		// TODO: Are there errors that should be treated as retryable errors?
 		return api.ReplicaStateFailed
 	}
 
@@ -398,8 +395,7 @@ func (s *Caffe2ReplicaSet) GetStatus() (api.Caffe2ReplicaStatus, error) {
 		increment(s.GetSingleReplicaStatus(index))
 	}
 
-	// Determine the overall status for the replica set based on the status of the individual
-	// replicas.
+	// Determine the overall status for the replica set based on the status of the individual replicas.
 	// If any of the replicas failed mark the set as failed.
 	if _, ok := status.ReplicasStates[api.ReplicaStateFailed]; ok {
 		status.State = api.ReplicaStateFailed

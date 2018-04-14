@@ -20,6 +20,13 @@ import (
 	"fmt"
 	"time"
 
+	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
+	jobclient "github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned"
+	kubeflowscheme "github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned/scheme"
+	informers "github.com/kubeflow/caffe2-operator/pkg/client/informers/externalversions"
+	listers "github.com/kubeflow/caffe2-operator/pkg/client/listers/kubeflow/v1alpha1"
+	"github.com/kubeflow/caffe2-operator/pkg/trainer"
+
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -34,13 +41,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
-
-	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
-	jobclient "github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned"
-	kubeflowscheme "github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned/scheme"
-	informers "github.com/kubeflow/caffe2-operator/pkg/client/informers/externalversions"
-	listers "github.com/kubeflow/caffe2-operator/pkg/client/listers/kubeflow/v1alpha1"
-	"github.com/kubeflow/caffe2-operator/pkg/trainer"
 )
 
 const (
@@ -102,7 +102,7 @@ func New(kubeClient kubernetes.Interface, APIExtclient apiextensionsclient.Inter
 		Caffe2JobClient: caffe2JobClient,
 		WorkQueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Caffe2jobs"),
 		recorder:        recorder,
-		// TODO(jlewi)): What to do about cluster.Cluster?
+		// TODO: What to do about cluster.Cluster?
 		jobs:   make(map[string]*trainer.TrainingJob),
 		config: config,
 	}
@@ -230,7 +230,6 @@ func (c *Controller) syncCaffe2Job(key string) (bool, error) {
 	// The UID's won't match in the event we deleted the job and then recreated the job with the same name.
 	if cJob, ok := c.jobs[key]; !ok || cJob.UID() != caffe2Job.UID {
 		nc, err := trainer.NewJob(c.KubeClient, c.Caffe2JobClient, c.recorder, caffe2Job, &c.config)
-
 		if err != nil {
 			return false, err
 		}
@@ -249,7 +248,7 @@ func (c *Controller) syncCaffe2Job(key string) (bool, error) {
 		return false, err
 	}
 
-	// TODO(jlewi): This logic will need to change when/if we get rid of phases and move to conditions. At that
+	// TODO: This logic will need to change when/if we get rid of phases and move to conditions. At that
 	// case we should forget about a job when the appropriate condition is reached.
 	if caffe2Job.Status.Phase == api.Caffe2JobPhaseCleanUp {
 		return true, nil

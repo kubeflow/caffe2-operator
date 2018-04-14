@@ -21,69 +21,69 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
+	caffe2JobFake "github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned/fake"
+	"github.com/kubeflow/caffe2-operator/pkg/util"
+
 	"github.com/golang/protobuf/proto"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/record"
-
-	tfv1alpha1 "github.com/kubeflow/tf-operator/pkg/apis/tensorflow/v1alpha1"
-	tfJobFake "github.com/kubeflow/tf-operator/pkg/client/clientset/versioned/fake"
-	"github.com/kubeflow/tf-operator/pkg/util"
 )
 
 var (
 	groupVersionKind = schema.GroupVersionKind{
-		Group:   tfv1alpha1.GroupName,
-		Version: tfv1alpha1.GroupVersion,
-		Kind:    tfv1alpha1.TFJobResourceKind,
+		Group:   api.GroupName,
+		Version: api.GroupVersion,
+		Kind:    api.Caffe2JobResourceKind,
 	}
 )
 
-func TestTFReplicaSet(t *testing.T) {
+func TestCaffe2ReplicaSet(t *testing.T) {
 	clientSet := fake.NewSimpleClientset()
 
-	jobSpec := &tfv1alpha1.TFJob{
+	jobSpec := &api.Caffe2Job{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name: "some-job",
 			UID:  "some-uid",
 		},
-		Spec: tfv1alpha1.TFJobSpec{
+		Spec: api.Caffe2JobSpec{
 			RuntimeId: "some-runtime",
-			ReplicaSpecs: []*tfv1alpha1.TFReplicaSpec{
+			ReplicaSpecs: []*api.Caffe2ReplicaSpec{
 				{
-					Replicas: proto.Int32(2),
-					TFPort:   proto.Int32(10),
+					Replicas:   proto.Int32(2),
+					Caffe2Port: proto.Int32(10),
 					Template: &v1.PodTemplateSpec{
 						Spec: v1.PodSpec{
 							Containers: []v1.Container{
 								{
-									Name: "tensorflow",
+									Name: "caffe2",
 								},
 							},
 						},
 					},
-					TFReplicaType: tfv1alpha1.PS,
+					Caffe2ReplicaType: api.PS,
 				},
 			},
 		},
 	}
 
 	recorder := record.NewFakeRecorder(100)
-	job, err := initJob(clientSet, &tfJobFake.Clientset{}, recorder, jobSpec)
+	job, err := initJob(clientSet, &caffe2JobFake.Clientset{}, recorder, jobSpec)
 
 	if err != nil {
 		t.Fatalf("initJob failed: %v", err)
 	}
 
-	replica, err := NewTFReplicaSet(clientSet, recorder, *jobSpec.Spec.ReplicaSpecs[0], job)
+	replica, err := NewCaffe2ReplicaSet(clientSet, recorder, *jobSpec.Spec.ReplicaSpecs[0], job)
 
 	if err != nil {
-		t.Fatalf("NewTFReplicaSet failed: %v", err)
+		t.Fatalf("NewCaffe2ReplicaSet failed: %v", err)
 	}
 
-	if err := replica.Create(&tfv1alpha1.ControllerConfig{}); err != nil {
+	if err := replica.Create(&api.ControllerConfig{}); err != nil {
 		t.Fatalf("replica.Create() error; %v", err)
 	}
 
@@ -173,12 +173,12 @@ func TestTFReplicaSet(t *testing.T) {
 			t.Fatalf("Expected 1 environment variable got %v", len(c.Env))
 		}
 
-		actualTFConfig := &TFConfig{}
-		if err := json.Unmarshal([]byte(c.Env[0].Value), actualTFConfig); err != nil {
-			t.Fatalf("Could not unmarshal TFConfig %v", err)
+		actualCaffe2Config := &Caffe2Config{}
+		if err := json.Unmarshal([]byte(c.Env[0].Value), actualCaffe2Config); err != nil {
+			t.Fatalf("Could not unmarshal Caffe2Config %v", err)
 		}
 
-		expectedTFConfig := &TFConfig{
+		expectedCaffe2Config := &Caffe2Config{
 			Cluster: ClusterSpec{},
 			Task: TaskSpec{
 				Type:  "ps",
@@ -187,8 +187,8 @@ func TestTFReplicaSet(t *testing.T) {
 			Environment: "cloud",
 		}
 
-		if !reflect.DeepEqual(expectedTFConfig, actualTFConfig) {
-			t.Fatalf("Got %v, Want %v", actualTFConfig, expectedTFConfig)
+		if !reflect.DeepEqual(expectedCaffe2Config, actualCaffe2Config) {
+			t.Fatalf("Got %v, Want %v", actualCaffe2Config, expectedCaffe2Config)
 		}
 	}
 	// Delete the job.
@@ -201,11 +201,11 @@ func TestTFReplicaSet(t *testing.T) {
 	}
 }
 
-func TestTFReplicaSetStatusFromPodList(t *testing.T) {
+func TestCaffe2ReplicaSetStatusFromPodList(t *testing.T) {
 	type TestCase struct {
 		PodList  v1.PodList
 		Name     string
-		Expected tfv1alpha1.ReplicaState
+		Expected api.ReplicaState
 	}
 
 	cases := []TestCase{
@@ -227,7 +227,7 @@ func TestTFReplicaSetStatusFromPodList(t *testing.T) {
 				},
 			},
 			Name:     "master",
-			Expected: tfv1alpha1.ReplicaStateRunning,
+			Expected: api.ReplicaStateRunning,
 		},
 		{
 			PodList: v1.PodList{
@@ -249,7 +249,7 @@ func TestTFReplicaSetStatusFromPodList(t *testing.T) {
 				},
 			},
 			Name:     "master",
-			Expected: tfv1alpha1.ReplicaStateSucceeded,
+			Expected: api.ReplicaStateSucceeded,
 		},
 		{
 			// Multiple containers; make sure we match by name.
@@ -278,7 +278,7 @@ func TestTFReplicaSetStatusFromPodList(t *testing.T) {
 				},
 			},
 			Name:     "master",
-			Expected: tfv1alpha1.ReplicaStateSucceeded,
+			Expected: api.ReplicaStateSucceeded,
 		},
 		{
 			// Container failed with permanent error and then got restarted.
@@ -305,7 +305,7 @@ func TestTFReplicaSetStatusFromPodList(t *testing.T) {
 				},
 			},
 			Name:     "master",
-			Expected: tfv1alpha1.ReplicaStateFailed,
+			Expected: api.ReplicaStateFailed,
 		},
 		{
 			// Multiple Pods; check we get the most recent.
@@ -347,12 +347,12 @@ func TestTFReplicaSetStatusFromPodList(t *testing.T) {
 				},
 			},
 			Name:     "master",
-			Expected: tfv1alpha1.ReplicaStateFailed,
+			Expected: api.ReplicaStateFailed,
 		},
 	}
 
 	for _, c := range cases {
-		status := replicaStatusFromPodList(c.PodList, tfv1alpha1.ContainerName(c.Name))
+		status := replicaStatusFromPodList(c.PodList, api.ContainerName(c.Name))
 		if status != c.Expected {
 			t.Errorf("replicaStatusFromPodList(%+v, %v)=%v ; want %v", c.PodList, c.Name, status, c.Expected)
 		}

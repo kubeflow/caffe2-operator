@@ -34,7 +34,7 @@ import (
 	"k8s.io/client-go/tools/record"
 )
 
-// TODO(jlewi): We should switch a New pattern and make trainingJob private so we can
+// TODO: We should switch a New pattern and make trainingJob private so we can
 // ensure correctness on creation.
 type TrainingJob struct {
 	job *api.Caffe2Job
@@ -137,7 +137,7 @@ func (j *TrainingJob) GetStatus() (api.State, []*api.Caffe2ReplicaStatus, error)
 	replicaStatuses := make([]*api.Caffe2ReplicaStatus, 0)
 
 	// The state for each replica.
-	// TODO(jlewi): We will need to modify this code if we want to allow multiples of a given type of replica.
+	// TODO: We will need to modify this code if we want to allow multiples of a given type of replica.
 	replicaSetStates := make(map[api.Caffe2ReplicaType]api.ReplicaState)
 
 	for _, r := range j.Replicas {
@@ -169,7 +169,7 @@ func (j *TrainingJob) GetStatus() (api.State, []*api.Caffe2ReplicaStatus, error)
 // isRetryableTerminationState returns true if a container terminated in a state
 // that we consider retryable.
 func isRetryableTerminationState(s *v1.ContainerStateTerminated) bool {
-	// TODO(jlewi): Need to match logic in
+	// TODO: Need to match logic in
 	// https://cs.corp.google.com/piper///depot/google3/cloud/ml/beta/job/training_job_state_util.cc?l=88
 	if s.Reason == "OOMKilled" {
 		// If the user's process causes an OOM and Docker kills the container,
@@ -182,7 +182,7 @@ func isRetryableTerminationState(s *v1.ContainerStateTerminated) bool {
 		return false
 	}
 
-	// TODO(jlewi): Should we use the exit code reported in the termination
+	// TODO: Should we use the exit code reported in the termination
 	// log message and not the ExitCode reported by the container.
 
 	if s.ExitCode >= 0 && s.ExitCode <= 127 {
@@ -270,17 +270,17 @@ func (j *TrainingJob) setupReplicas() error {
 }
 
 func (j *TrainingJob) Delete() {
-	// TODO(jlewi): Delete is what should cause us to delete the Pods.
+	// TODO: Delete is what should cause us to delete the Pods.
 	// we shouldn't delete the pods when the jobs finish because leaving the pods
 	// allows us to get the logs from the pods after the job finishes.
 	//
 	log.Infof("Caffe2Job %v deleted by the user", j.fullname())
-	// TODO(jlewi): This logic is probably insufficient.
+	// TODO: This logic is probably insufficient.
 	if j.job.Status.Phase != api.Caffe2JobPhaseCleanUp {
 		j.status.Phase = api.Caffe2JobPhaseCleanUp
 	}
 
-	// TODO(jlewi): Does it make sense to explicitly delete the resources? Should
+	// TODO: Does it make sense to explicitly delete the resources? Should
 	// we just rely on K8s garbage collection to delete the resources before
 	// deleting TFJob?
 	if cErr := j.deleteResources(); cErr != nil {
@@ -331,13 +331,13 @@ func (j *TrainingJob) Reconcile(config *api.ControllerConfig) error {
 		return err
 	}
 
-	// TODO(jlewi): Can we determine from the CRD status whether we should
+	// TODO: Can we determine from the CRD status whether we should
 	// Create the resources or not? We need to ensure the resources exist so for
 	// now we always call Create.
 	if j.job.Status.Phase == api.Caffe2JobPhaseCreating || j.job.Status.Phase == api.Caffe2JobPhaseRunning {
 		// We call Create to make sure all the resources exist and are running.
 		if cErr := j.createResources(config); cErr != nil {
-			// TODO(jlewi): Should we eventually give up and mark the job as failed if we can't create the resources?
+			// TODO: Should we eventually give up and mark the job as failed if we can't create the resources?
 			j.status.Reason = fmt.Sprintf("Could not create job resources; %v", cErr)
 			if err := j.updateCRDStatus(); err != nil {
 				log.Warningf("Job %v; failed to update status error: %v", j.job.ObjectMeta.Name, err)
@@ -354,7 +354,7 @@ func (j *TrainingJob) Reconcile(config *api.ControllerConfig) error {
 			log.Errorf("GetStatus() for job %v returned error: %v", j.job.ObjectMeta.Name, err)
 			return err
 		}
-		// TODO(jlewi): We should update the Phase if we detect the job is done.
+		// TODO: We should update the Phase if we detect the job is done.
 		if state == api.StateFailed {
 			log.Errorf("Master failed Job: %v.", j.job.ObjectMeta.Name)
 			j.status.Phase = api.Caffe2JobPhaseDone

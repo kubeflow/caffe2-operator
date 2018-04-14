@@ -12,7 +12,7 @@ init:
 	mkdir -p ${BIN_DIR}
 
 generate-code:
-	${BIN_DIR}/deepcopy-gen -i ./pkg/batchd/apis/v1/ -O zz_generated.deepcopy
+	hack/update-codegen.sh
 
 clean:
 	rm -rf _output/
