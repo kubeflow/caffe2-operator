@@ -19,6 +19,7 @@ import (
 
 	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
 	"github.com/kubeflow/caffe2-operator/pkg/util"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -106,7 +107,7 @@ func ConfigureAcceleratorsForCaffe2JobSpec(c *api.Caffe2JobSpec, accelerators ma
 // Cleanup cleans up user passed spec, e.g. defaulting, transforming fields.
 // TODO: move this to admission controller
 func Cleanup(c *api.Caffe2JobSpec) {
-	// TODO(jlewi): Add logic to cleanup user provided spec; e.g. by filling in defaults.
+	// TODO: Add logic to cleanup user provided spec; e.g. by filling in defaults.
 	// We should have default container images so user doesn't have to provide these.
 }
 

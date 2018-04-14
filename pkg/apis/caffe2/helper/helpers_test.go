@@ -18,9 +18,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gogo/protobuf/proto"
 	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
 	"github.com/kubeflow/caffe2-operator/pkg/util"
+
+	"github.com/gogo/protobuf/proto"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )

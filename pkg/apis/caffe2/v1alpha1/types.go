@@ -34,9 +34,9 @@ const (
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=tfjob
+// +resource:path=caffe2job
 
-// Caffe2Job describes tfjob info
+// Caffe2Job describes caffe2job info
 type Caffe2Job struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -44,9 +44,16 @@ type Caffe2Job struct {
 	Status            Caffe2JobStatus `json:"status"`
 }
 
+type Caffe2Backend string
+
+const (
+	Caffe2Redis Caffe2Backend = "redis"
+	Caffe2Gloo  Caffe2Backend = "gloo"
+)
+
 type Caffe2JobSpec struct {
-	// TODO(jlewi): Can we we get rid of this and use some value from Kubernetes or a random ide.
 	RuntimeId string
+	Backend   Caffe2Backend
 
 	// ReplicaSpecs specifies the Caffe2 replicas to run.
 	ReplicaSpecs []*Caffe2ReplicaSpec `json:"replicaSpecs"`
@@ -54,7 +61,7 @@ type Caffe2JobSpec struct {
 	// TFImage defines the tensorflow docker image that should be used for default parameter server
 	Caffe2Image string `json:"caffe2Image,omitempty"`
 
-	// TerminationPolicy specifies the condition that the tfjob should be considered finished.
+	// TerminationPolicy specifies the condition that the caffe2job should be considered finished.
 	TerminationPolicy *TerminationPolicySpec `json:"terminationPolicy,omitempty"`
 }
 
@@ -84,7 +91,7 @@ const (
 	DefaultCaffe2Image string        = "carmark/caffe2"
 )
 
-// TODO(jlewi): We probably want to add a name field. This would allow us to have more than 1 type of each worker.
+// TODO: We probably want to add a name field. This would allow us to have more than 1 type of each worker.
 // This might be useful if you wanted to have a separate set of workers to do eval.
 type Caffe2ReplicaSpec struct {
 	// Replicas is the number of desired replicas.
@@ -95,7 +102,7 @@ type Caffe2ReplicaSpec struct {
 	Replicas *int32              `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 	Template *v1.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
 	// TFPort is the port to use for TF services.
-	Caffe2Port        *int32 `json:"caffe2Port,omitempty" protobuf:"varint,1,opt,name=tfPort"`
+	Caffe2Port        *int32 `json:"caffe2Port,omitempty" protobuf:"varint,1,opt,name=caffe2Port"`
 	Caffe2ReplicaType `json:"caffe2ReplicaType"`
 }
 
@@ -151,7 +158,7 @@ type Caffe2ReplicaStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=tfjobs
+// +resource:path=caffe2jobs
 
 // Caffe2JobList is a list of Caffe2Jobs clusters.
 type Caffe2JobList struct {
