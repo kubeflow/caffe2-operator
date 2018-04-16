@@ -105,10 +105,8 @@ func NewCaffe2ReplicaSet(clientSet kubernetes.Interface, recorder record.EventRe
 // Labels returns the labels for this replica set.
 func (s *Caffe2ReplicaSet) Labels() KubernetesLabels {
 	return KubernetesLabels(map[string]string{
-		"kubeflow.org": "",
-		"job_type":     string(s.Spec.Caffe2ReplicaType),
-		// runtime_id is set by Job.setup, which is called after the Caffe2ReplicaSet is created.
-		// this is why labels aren't a member variable.
+		"kubeflow.org":    "",
+		"job_type":        string(s.Spec.Caffe2ReplicaType),
 		"runtime_id":      s.Job.job.Spec.RuntimeId,
 		"caffe2_job_name": s.Job.job.ObjectMeta.Name})
 }
@@ -121,7 +119,7 @@ func (s *Caffe2ReplicaSet) Create(config *api.ControllerConfig) error {
 		// Create the service.
 		service := &v1.Service{
 			ObjectMeta: meta_v1.ObjectMeta{
-				Name:   s.jobName(index),
+				Name:   s.serviceName(index),
 				Labels: taskLabels,
 				OwnerReferences: []meta_v1.OwnerReference{
 					helper.AsOwner(s.Job.job),
@@ -153,7 +151,7 @@ func (s *Caffe2ReplicaSet) Create(config *api.ControllerConfig) error {
 			s.recorder.Eventf(s.Job.job, v1.EventTypeNormal, SuccessfulCreateReason, "Created service: %v", createdService.Name)
 		}
 
-		// Configure the TFCONFIG environment variable.
+		// Configure the CAFFE2_CONFIG environment variable.
 		caffe2Config := Caffe2Config{
 			Cluster: s.Job.ClusterSpec(),
 			Task: TaskSpec{
@@ -197,7 +195,7 @@ func (s *Caffe2ReplicaSet) Create(config *api.ControllerConfig) error {
 			newJ.Spec.Template.ObjectMeta.Labels[k] = v
 		}
 
-		// Add TF_CONFIG environment variable.
+		// Add CAFFE2_CONFIG environment variable.
 		for i, _ := range newJ.Spec.Template.Spec.Containers {
 			// We can't get c in the loop variable because that would be by value so our modifications
 			// wouldn't have any effect.
@@ -221,7 +219,6 @@ func (s *Caffe2ReplicaSet) Create(config *api.ControllerConfig) error {
 		if err != nil {
 			if k8s_errors.IsAlreadyExists(err) {
 				log.Infof("%v already exists.", s.jobName(index))
-
 			} else {
 				s.recorder.Eventf(s.Job.job, v1.EventTypeWarning, FailedCreateReason, "Error creating: %v", err)
 				return k8sErrors.NewAggregate([]error{fmt.Errorf("Creating Job %v returned error.", createdJob.ObjectMeta.Name), err})
@@ -423,4 +420,12 @@ func (s *Caffe2ReplicaSet) jobName(index int32) string {
 	// Thus jobname(40 chars)-replicaType(6 chars)-runtimeId(4 chars)-index(4 chars), also leaving some spaces
 	// See https://github.com/kubernetes/community/blob/master/contributors/design-proposals/architecture/identifiers.md
 	return fmt.Sprintf("%v-%v-%v-%v", fmt.Sprintf("%.40s", s.Job.job.ObjectMeta.Name), strings.ToLower(string(s.Spec.Caffe2ReplicaType)), s.Job.job.Spec.RuntimeId, index)
+}
+
+func (s *Caffe2ReplicaSet) serviceName(index int32) string {
+	if s.Spec.Caffe2ReplicaType == api.MASTER {
+		// we only have one master job, so one master service
+		return fmt.Sprintf("%v-%v", fmt.Sprintf("%.40s", s.Job.job.ObjectMeta.Name), strings.ToLower(string(s.Spec.Caffe2ReplicaType)))
+	}
+	return fmt.Sprintf("%v-%v-%v", fmt.Sprintf("%.40s", s.Job.job.ObjectMeta.Name), strings.ToLower(string(s.Spec.Caffe2ReplicaType)), index)
 }
