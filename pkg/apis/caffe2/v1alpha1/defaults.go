@@ -27,23 +27,26 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 func SetDefaults_Caffe2Job(obj *Caffe2Job) {
 	c := &obj.Spec
 
-	if c.Caffe2Image == "" {
-		c.Caffe2Image = DefaultCaffe2Image
-	}
+	/*
+		if c.Caffe2Image == "" {
+			c.Caffe2Image = DefaultCaffe2Image
+		}
+	*/
 
 	// Check that each replica has a Caffe2 container.
 	for _, r := range c.ReplicaSpecs {
 
-		if r.Caffe2Port == nil {
-			r.Caffe2Port = proto.Int32(Caffe2Port)
-		}
-
-		if string(r.Caffe2ReplicaType) == "" {
-			r.Caffe2ReplicaType = MASTER
-		}
+		/*
+				if r.Caffe2Port == nil {
+					r.Caffe2Port = proto.Int32(Caffe2Port)
+				}
+			if string(r.Caffe2ReplicaType) == "" {
+				r.Caffe2ReplicaType = MASTER
+			}
+		*/
 
 		if r.Replicas == nil {
-			r.Replicas = proto.Int32(Replicas)
+			r.Replicas = proto.Int32(1)
 		}
 	}
 	if c.TerminationPolicy == nil {

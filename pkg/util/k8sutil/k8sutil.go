@@ -40,7 +40,7 @@ func addOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
 }
 
 func MustNewKubeClient() kubernetes.Interface {
-	cfg, err := GetClusterConfig()
+	cfg, err := GetClusterConfig("")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func MustNewKubeClient() kubernetes.Interface {
 }
 
 func MustNewApiExtensionsClient() apiextensionsclient.Interface {
-	cfg, err := GetClusterConfig()
+	cfg, err := GetClusterConfig("")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +56,10 @@ func MustNewApiExtensionsClient() apiextensionsclient.Interface {
 }
 
 // Obtain the config from the Kube configuration used by kubeconfig, or from k8s cluster.
-func GetClusterConfig() (*rest.Config, error) {
+func GetClusterConfig(f string) (*rest.Config, error) {
+	if f != "" {
+		return clientcmd.BuildConfigFromFlags("", f)
+	}
 	if len(os.Getenv(RecommendedConfigPathEnvVar)) > 0 {
 		// use the current context in kubeconfig
 		// This is very useful for running locally.
