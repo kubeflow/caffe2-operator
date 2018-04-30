@@ -16,14 +16,11 @@ package app
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -32,10 +29,8 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"github.com/kubeflow/caffe2-operator/cmd/caffe2-operator/app/options"
-	"github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
 	jobclient "github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned"
 	"github.com/kubeflow/caffe2-operator/pkg/client/clientset/versioned/scheme"
-	informers "github.com/kubeflow/caffe2-operator/pkg/client/informers/externalversions"
 	"github.com/kubeflow/caffe2-operator/pkg/controller"
 	"github.com/kubeflow/caffe2-operator/pkg/util"
 	"github.com/kubeflow/caffe2-operator/pkg/util/k8sutil"
@@ -43,6 +38,7 @@ import (
 )
 
 var (
+	// leader election config
 	leaseDuration = 15 * time.Second
 	renewDuration = 5 * time.Second
 	retryPeriod   = 3 * time.Second
@@ -63,28 +59,23 @@ func Run(opt *options.ServerOption) error {
 		version.PrintVersionAndExit()
 	}
 
-	config, err := k8sutil.GetClusterConfig()
+	config, err := k8sutil.GetClusterConfig(opt.ControllerConfigFile)
 	if err != nil {
 		return err
 	}
 
-	kubeClient, leaderElectionClient, jobClient, apiExtensionsclient, err := createClients(config)
+	kubeClient, leaderElectionClient, jobClient, err := createClients(config)
 	if err != nil {
 		return err
 	}
-
-	controllerConfig := readControllerConfig(opt.ControllerConfigFile)
 
 	neverStop := make(chan struct{})
 	defer close(neverStop)
 
-	tfJobInformerFactory := informers.NewSharedInformerFactory(jobClient, time.Second*30)
-	controller, err := controller.New(kubeClient, apiExtensionsclient, jobClient, *controllerConfig, tfJobInformerFactory)
+	controller, err := controller.New(kubeClient, jobClient)
 	if err != nil {
 		return err
 	}
-
-	go tfJobInformerFactory.Start(neverStop)
 
 	run := func(stopCh <-chan struct{}) {
 		controller.Run(1, stopCh)
@@ -127,46 +118,21 @@ func Run(opt *options.ServerOption) error {
 	return nil
 }
 
-func readControllerConfig(controllerConfigFile string) *v1alpha1.ControllerConfig {
-	controllerConfig := &v1alpha1.ControllerConfig{}
-	if controllerConfigFile != "" {
-		glog.Infof("Loading controller config from %v.", controllerConfigFile)
-		data, err := ioutil.ReadFile(controllerConfigFile)
-		if err != nil {
-			glog.Fatalf("Could not read file: %v. Error: %v", controllerConfigFile, err)
-			return controllerConfig
-		}
-		err = yaml.Unmarshal(data, controllerConfig)
-		if err != nil {
-			glog.Fatalf("Could not parse controller config; Error: %v\n", err)
-		}
-		glog.Infof("ControllerConfig: %v", util.Pformat(controllerConfig))
-	} else {
-		glog.Info("No controller_config_file provided; using empty config.")
-	}
-	return controllerConfig
-}
-
-func createClients(config *rest.Config) (clientset.Interface, clientset.Interface, jobclient.Interface, apiextensionsclient.Interface, error) {
+func createClients(config *rest.Config) (clientset.Interface, clientset.Interface, jobclient.Interface, error) {
 	kubeClient, err := clientset.NewForConfig(rest.AddUserAgent(config, "caffe2job_operator"))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	leaderElectionClient, err := clientset.NewForConfig(rest.AddUserAgent(config, "leader-election"))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	jobClient, err := jobclient.NewForConfig(config)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	apiExtensionsclient, err := apiextensionsclient.NewForConfig(config)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	return kubeClient, leaderElectionClient, jobClient, apiExtensionsclient, nil
+	return kubeClient, leaderElectionClient, jobClient, nil
 }

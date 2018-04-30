@@ -29,6 +29,7 @@ const (
 	// Defaults for the Spec
 	Caffe2Port = 2222
 	Replicas   = 1
+	CAFFE2     = "caffe2"
 )
 
 // +genclient
@@ -38,32 +39,35 @@ const (
 
 // Caffe2Job describes caffe2job info
 type Caffe2Job struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
+	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              Caffe2JobSpec   `json:"spec"`
-	Status            Caffe2JobStatus `json:"status"`
+
+	// Specification of the desired behavior of the Caffe2Job.
+	Spec Caffe2JobSpec `json:"spec"`
+
+	// Most recently observed status of the Caffe2Job
+	Status Caffe2JobStatus `json:"status"`
 }
 
-type Caffe2Backend string
-
-const (
-	Caffe2Redis Caffe2Backend = "redis"
-	Caffe2Gloo  Caffe2Backend = "gloo"
-)
-
 type Caffe2JobSpec struct {
-	RuntimeId string
-	Backend   Caffe2Backend
+	RuntimeID string
 
 	// ReplicaSpecs specifies the Caffe2 replicas to run.
-	ReplicaSpecs []*Caffe2ReplicaSpec `json:"replicaSpecs"`
-
-	// TFImage defines the tensorflow docker image that should be used for default parameter server
-	Caffe2Image string `json:"caffe2Image,omitempty"`
+	ReplicaSpecs map[Caffe2ReplicaType]*Caffe2ReplicaSpec `json:"replicaSpecs"`
 
 	// TerminationPolicy specifies the condition that the caffe2job should be considered finished.
 	TerminationPolicy *TerminationPolicySpec `json:"terminationPolicy,omitempty"`
 }
+
+// Caffe2ReplicaType determines how a set of Caffe2 processes are handled.
+type Caffe2ReplicaType string
+
+const (
+	MASTER Caffe2ReplicaType = "MASTER"
+	WORKER Caffe2ReplicaType = "WORKER"
+)
 
 type TerminationPolicySpec struct {
 	// Chief policy waits for a particular process (which is the chief) to exit.
@@ -75,87 +79,94 @@ type ChiefSpec struct {
 	ReplicaIndex int    `json:"replicaIndex"`
 }
 
-// Caffe2ReplicaType determines how a set of Caffe2 processes are handled.
-type Caffe2ReplicaType string
-
-const (
-	MASTER Caffe2ReplicaType = "MASTER"
-	WORKER Caffe2ReplicaType = "WORKER"
-)
-
-// ContainerName is an enum for expected containers.
-type ContainerName string
-
-const (
-	CAFFE2             ContainerName = "caffe2"
-	DefaultCaffe2Image string        = "carmark/caffe2"
-)
-
-// TODO: We probably want to add a name field. This would allow us to have more than 1 type of each worker.
-// This might be useful if you wanted to have a separate set of workers to do eval.
 type Caffe2ReplicaSpec struct {
 	// Replicas is the number of desired replicas.
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.
 	// More info: http://kubernetes.io/docs/user-guide/replication-controller#what-is-a-replication-controller
 	// +optional
-	Replicas *int32              `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+
+	//  Template is the object that describes the pod that
+	// will be created for this Caffe2Replica.
 	Template *v1.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
-	// TFPort is the port to use for TF services.
-	Caffe2Port        *int32 `json:"caffe2Port,omitempty" protobuf:"varint,1,opt,name=caffe2Port"`
-	Caffe2ReplicaType `json:"caffe2ReplicaType"`
 }
-
-type Caffe2JobPhase string
-
-const (
-	Caffe2JobPhaseNone     Caffe2JobPhase = ""
-	Caffe2JobPhaseCreating Caffe2JobPhase = "Creating"
-	Caffe2JobPhaseRunning  Caffe2JobPhase = "Running"
-	Caffe2JobPhaseCleanUp  Caffe2JobPhase = "CleanUp"
-	Caffe2JobPhaseFailed   Caffe2JobPhase = "Failed"
-	Caffe2JobPhaseDone     Caffe2JobPhase = "Done"
-)
-
-type State string
-
-const (
-	StateUnknown   State = "Unknown"
-	StateRunning   State = "Running"
-	StateSucceeded State = "Succeeded"
-	StateFailed    State = "Failed"
-)
 
 type Caffe2JobStatus struct {
-	// Phase is the Caffe2Job running phase
-	Phase  Caffe2JobPhase `json:"phase"`
-	Reason string         `json:"reason"`
+	// Conditions is an array of current observed Caffe2Job conditions.
+	Conditions []Caffe2JobCondition `json:"conditions"`
 
-	// State indicates the state of the job.
-	State State `json:"state"`
+	// ReplicaStatuses specifies the status of each Caffe2 replica.
+	ReplicaStatuses map[Caffe2ReplicaType]*Caffe2ReplicaStatus `json:"replicaStatuses"`
 
-	// ReplicaStatuses specifies the status of each TF replica.
-	ReplicaStatuses []*Caffe2ReplicaStatus `json:"replicaStatuses"`
+	// Represents time when the Caffe2Job was acknowledged by the Caffe2Job controller.
+	// It is not guaranteed to be set in happens-before order across separate operations.
+	// It is represented in RFC3339 form and is in UTC.
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+
+	// Represents time when the Caffe2Job was completed. It is not guaranteed to
+	// be set in happens-before order across separate operations.
+	// It is represented in RFC3339 form and is in UTC.
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+
+	// Represents last time when the Caffe2Job was reconciled. It is not guaranteed to
+	// be set in happens-before order across separate operations.
+	// It is represented in RFC3339 form and is in UTC.
+	LastReconcileTime *metav1.Time `json:"lastReconcileTime,omitempty"`
 }
 
-type ReplicaState string
+// Caffe2ReplicaStatus represents the current observed state of the Caffe2Replica.
+type Caffe2ReplicaStatus struct {
+	// The number of actively running pods.
+	Active int32 `json:"active,omitempty"`
+
+	// The number of pods which reached phase Succeeded.
+	Succeeded int32 `json:"succeeded,omitempty"`
+
+	// The number of pods which reached phase Failed.
+	Failed int32 `json:"failed,omitempty"`
+}
+
+// Caffe2JobCondition describes the state of the Caffe2Job at a certain point.
+type Caffe2JobCondition struct {
+	// Type of Caffe2Job condition.
+	Type Caffe2JobConditionType `json:"type"`
+	// Status of the condition, one of True, False, Unknown.
+	Status v1.ConditionStatus `json:"status"`
+	// The reason for the condition's last transition.
+	Reason string `json:"reason,omitempty"`
+	// A human readable message indicating details about the transition.
+	Message string `json:"message,omitempty"`
+	// The last time this condition was updated.
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	// Last time the condition transitioned from one status to another.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+}
+
+// Caffe2JobConditionType defines all kinds of types of Caffe2JobStatus.
+type Caffe2JobConditionType string
 
 const (
-	ReplicaStateUnknown   ReplicaState = "Unknown"
-	ReplicaStateRunning   ReplicaState = "Running"
-	ReplicaStateFailed    ReplicaState = "Failed"
-	ReplicaStateSucceeded ReplicaState = "Succeeded"
+	// Caffe2JobCreated means the caffe2job has been accepted by the system,
+	// but one or more of the pods/services has not been started.
+	// This includes time before pods being scheduled and launched.
+	Caffe2JobCreated Caffe2JobConditionType = "Created"
+
+	// Caffe2JobRunning means all sub-resources (e.g. services/pods) of this Caffe2Job
+	// have been successfully scheduled and launched.
+	// The training is running without error.
+	Caffe2JobRunning Caffe2JobConditionType = "Running"
+
+	// Caffe2JobSucceeded means all sub-resources (e.g. services/pods) of this Caffe2Job
+	// reached phase have terminated in success.
+	// The training is complete without error.
+	Caffe2JobSucceeded Caffe2JobConditionType = "Succeeded"
+
+	// Caffe2JobFailed means one or more sub-resources (e.g. services/pods) of this Caffe2Job
+	// reached phase failed with no restarting.
+	// The training has failed its execution.
+	Caffe2JobFailed Caffe2JobConditionType = "Failed"
 )
-
-type Caffe2ReplicaStatus struct {
-	Caffe2ReplicaType `json:"caffe2_replica_type"`
-
-	// State is the overall state of the replica
-	State ReplicaState `json:"state"`
-
-	// ReplicasStates provides the number of replicas in each status.
-	ReplicasStates map[ReplicaState]int
-}
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=caffe2jobs
@@ -168,32 +179,4 @@ type Caffe2JobList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	// Items is a list of Caffe2Jobs
 	Items []Caffe2Job `json:"items"`
-}
-
-type ControllerConfig struct {
-	// Accelerators is a map from the name of the accelerator to the config for that accelerator.
-	// This should match the value specified as a container limit.
-	// e.g. alpha.kubernetes.io/nvidia-gpu
-	Accelerators map[string]AcceleratorConfig
-
-	// Path to the file containing the grpc server source
-	GrpcServerFilePath string
-}
-
-// AcceleratorVolume represents a host path that must be mounted into
-// each container that needs to use GPUs.
-type AcceleratorVolume struct {
-	Name      string
-	HostPath  string
-	MountPath string
-}
-
-type AcceleratorConfig struct {
-	Volumes []AcceleratorVolume
-	EnvVars []EnvironmentVariableConfig
-}
-
-type EnvironmentVariableConfig struct {
-	Name  string
-	Value string
 }

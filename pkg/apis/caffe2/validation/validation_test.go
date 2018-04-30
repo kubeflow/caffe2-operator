@@ -17,7 +17,7 @@ package validation
 import (
 	"testing"
 
-	api "github.com/kubeflow/caffe2-operator/pkg/apis/caffe2/v1alpha1"
+	tfv1 "github.com/kubeflow/tf-operator/pkg/apis/tensorflow/v1alpha1"
 
 	"github.com/gogo/protobuf/proto"
 	"k8s.io/api/core/v1"
@@ -25,73 +25,73 @@ import (
 
 func TestValidate(t *testing.T) {
 	type testCase struct {
-		in             *api.Caffe2JobSpec
+		in             *tfv1.TFJobSpec
 		expectingError bool
 	}
 
 	testCases := []testCase{
 		{
-			in: &api.Caffe2JobSpec{
-				ReplicaSpecs: []*api.Caffe2ReplicaSpec{
+			in: &tfv1.TFJobSpec{
+				ReplicaSpecs: []*tfv1.TFReplicaSpec{
 					{
 						Template: &v1.PodTemplateSpec{
 							Spec: v1.PodSpec{
 								Containers: []v1.Container{
 									{
-										Name: "caffe2",
+										Name: "tensorflow",
 									},
 								},
 							},
 						},
-						Caffe2ReplicaType: api.MASTER,
-						Replicas:          proto.Int32(1),
+						TFReplicaType: tfv1.MASTER,
+						Replicas:      proto.Int32(1),
 					},
 				},
-				Caffe2Image: "carmark/caffe2",
+				TFImage: "tensorflow/tensorflow:1.3.0",
 			},
 			expectingError: false,
 		},
 		{
-			in: &api.Caffe2JobSpec{
-				ReplicaSpecs: []*api.Caffe2ReplicaSpec{
+			in: &tfv1.TFJobSpec{
+				ReplicaSpecs: []*tfv1.TFReplicaSpec{
 					{
 						Template: &v1.PodTemplateSpec{
 							Spec: v1.PodSpec{
 								Containers: []v1.Container{
 									{
-										Name: "caffe2",
+										Name: "tensorflow",
 									},
 								},
 							},
 						},
-						Caffe2ReplicaType: api.WORKER,
-						Replicas:          proto.Int32(1),
+						TFReplicaType: tfv1.WORKER,
+						Replicas:      proto.Int32(1),
 					},
 				},
-				Caffe2Image: "carmark/caffe2",
+				TFImage: "tensorflow/tensorflow:1.3.0",
 			},
 			expectingError: true,
 		},
 		{
-			in: &api.Caffe2JobSpec{
-				ReplicaSpecs: []*api.Caffe2ReplicaSpec{
+			in: &tfv1.TFJobSpec{
+				ReplicaSpecs: []*tfv1.TFReplicaSpec{
 					{
 						Template: &v1.PodTemplateSpec{
 							Spec: v1.PodSpec{
 								Containers: []v1.Container{
 									{
-										Name: "caffe2",
+										Name: "tensorflow",
 									},
 								},
 							},
 						},
-						Caffe2ReplicaType: api.WORKER,
-						Replicas:          proto.Int32(1),
+						TFReplicaType: tfv1.WORKER,
+						Replicas:      proto.Int32(1),
 					},
 				},
-				Caffe2Image: "carmark/caffe2",
-				TerminationPolicy: &api.TerminationPolicySpec{
-					Chief: &api.ChiefSpec{
+				TFImage: "tensorflow/tensorflow:1.3.0",
+				TerminationPolicy: &tfv1.TerminationPolicySpec{
+					Chief: &tfv1.ChiefSpec{
 						ReplicaName:  "WORKER",
 						ReplicaIndex: 0,
 					},
@@ -102,11 +102,11 @@ func TestValidate(t *testing.T) {
 	}
 
 	for _, c := range testCases {
-		job := &api.Caffe2Job{
+		job := &tfv1.TFJob{
 			Spec: *c.in,
 		}
-		api.SetObjectDefaults_Caffe2Job(job)
-		if err := ValidateCaffe2JobSpec(&job.Spec); (err != nil) != c.expectingError {
+		tfv1.SetObjectDefaults_TFJob(job)
+		if err := ValidateTFJobSpec(&job.Spec); (err != nil) != c.expectingError {
 			t.Errorf("unexpected validation result: %v", err)
 		}
 	}
