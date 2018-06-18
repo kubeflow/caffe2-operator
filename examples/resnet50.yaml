@@ -1,0 +1,26 @@
+apiVersion: "kubeflow.org/v1alpha1"
+kind: "Caffe2Job"
+metadata:
+  name: "example-job"
+spec:
+  replicaSpecs:
+      replicas: 1
+      template:
+        spec:
+          hostNetwork: true
+          containers:
+          - image: kubeflow/caffe2:py2-cuda9.0-cudnn7-ubuntu16.04
+            name: caffe2
+            resources:
+              limits:
+                nvidia.com/gpu: 2
+            workingDir: /usr/local/caffe2/caffe2/python/examples/
+            command: ["python", "resnet50_trainer.py"]
+            args: ["--train_data", "/data/nfs_share/handwritten/mnist-train-nchw-leveldb", "--test_data", "/data/nfs_share/handwritten/mnist-test-nchw-leveldb", "--db_type", "leveldb", "--num_gpus", "2", "--redis_host", "192.168.1.120", "--redis_port", "6379", "--num_shards", "$(NUM_SHARDS)", "--shard_id", "$(SHARD_ID)", "--run_id", "$(RUN_ID)"]
+            volumeMounts:
+             - name: dataset
+               mountPath: /data/nfs_share
+          volumes:
+          - name: dataset
+            hostPath:
+              path: /data/nfs_share/
