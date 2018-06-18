@@ -21,16 +21,15 @@ import (
 func (tc *Controller) reconcilePods(
 	job *api.Caffe2Job,
 	pods []*v1.Pod,
-	rtype api.Caffe2ReplicaType,
 	spec *api.Caffe2ReplicaSpec) error {
 
 	// Convert Caffe2ReplicaType to lower string.
-	rt := strings.ToLower(string(rtype))
+	rt := "worker"
 	// Get all pods for the type rt.
 	pods = filterPodsForCaffe2ReplicaType(pods, rt)
 	replicas := int(*spec.Replicas)
 
-	initializeCaffe2ReplicaStatuses(job, rtype)
+	initializeCaffe2ReplicaStatuses(job)
 
 	glog.Infof("Reconcile Pods...")
 	podSlices := getPodSlices(pods, replicas)
@@ -44,15 +43,15 @@ func (tc *Controller) reconcilePods(
 			if err != nil {
 				return err
 			}
-			increaseCaffe2JobReplicaStatusesActive(job, rtype)
+			increaseCaffe2JobReplicaStatusesActive(job)
 		} else {
 			// We already have one, and check the status.
 			pod := podSlice[0]
-			updateCaffe2JobReplicaStatuses(job, rtype, pod)
+			updateCaffe2JobReplicaStatuses(job, pod)
 		}
 	}
 
-	return tc.updateStatus(job, rtype, replicas)
+	return tc.updateStatus(job, replicas)
 }
 
 // getPodSlices returns a slice, which element is the slice of pod.
@@ -108,6 +107,17 @@ func (tc *Controller) createNewPod(job *api.Caffe2Job, rt, index string, spec *a
 
 	for key, value := range labels {
 		podTemplate.Labels[key] = value
+	}
+	for i := range podTemplate.Spec.Containers {
+		if podTemplate.Spec.Containers[i].Env == nil {
+			podTemplate.Spec.Containers[i].Env = []v1.EnvVar{}
+		}
+		podTemplate.Spec.Containers[i].Env = append(
+			podTemplate.Spec.Containers[i].Env,
+			v1.EnvVar{Name: "SHARD_ID", Value: index},
+			v1.EnvVar{Name: "NUM_SHARDS", Value: fmt.Sprintf("%d", *spec.Replicas)},
+			v1.EnvVar{Name: "RUN_ID", Value: job.Spec.RuntimeID},
+		)
 	}
 
 	// Generate Caffe2_CONFIG JSON string.

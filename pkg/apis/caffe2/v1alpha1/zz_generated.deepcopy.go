@@ -163,14 +163,11 @@ func (in *Caffe2JobSpec) DeepCopyInto(out *Caffe2JobSpec) {
 	*out = *in
 	if in.ReplicaSpecs != nil {
 		in, out := &in.ReplicaSpecs, &out.ReplicaSpecs
-		*out = make(map[Caffe2ReplicaType]*Caffe2ReplicaSpec, len(*in))
-		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = new(Caffe2ReplicaSpec)
-				val.DeepCopyInto((*out)[key])
-			}
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(Caffe2ReplicaSpec)
+			(*in).DeepCopyInto(*out)
 		}
 	}
 	if in.TerminationPolicy != nil {
@@ -207,14 +204,11 @@ func (in *Caffe2JobStatus) DeepCopyInto(out *Caffe2JobStatus) {
 	}
 	if in.ReplicaStatuses != nil {
 		in, out := &in.ReplicaStatuses, &out.ReplicaStatuses
-		*out = make(map[Caffe2ReplicaType]*Caffe2ReplicaStatus, len(*in))
-		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = new(Caffe2ReplicaStatus)
-				val.DeepCopyInto((*out)[key])
-			}
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(Caffe2ReplicaStatus)
+			**out = **in
 		}
 	}
 	if in.StartTime != nil {

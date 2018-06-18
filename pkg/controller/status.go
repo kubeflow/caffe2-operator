@@ -23,48 +23,46 @@ const (
 )
 
 // updateStatus updates the status of the caffe2job.
-func (tc *Controller) updateStatus(job *api.Caffe2Job, rtype api.Caffe2ReplicaType, replicas int) error {
+func (tc *Controller) updateStatus(job *api.Caffe2Job, replicas int) error {
 	// Expect to have `replicas - succeeded` pods alive.
-	expected := replicas - int(job.Status.ReplicaStatuses[rtype].Succeeded)
-	running := int(job.Status.ReplicaStatuses[rtype].Active)
-	failed := int(job.Status.ReplicaStatuses[rtype].Failed)
+	expected := replicas - int(job.Status.ReplicaStatuses.Succeeded)
+	running := int(job.Status.ReplicaStatuses.Active)
+	failed := int(job.Status.ReplicaStatuses.Failed)
 
-	if rtype == api.WORKER {
-		// All workers are running, set StartTime.
-		if running == replicas {
-			now := metav1.Now()
-			job.Status.StartTime = &now
-		}
+	// All workers are running, set StartTime.
+	if running == replicas {
+		now := metav1.Now()
+		job.Status.StartTime = &now
+	}
 
-		// Some workers are still running, leave a running condition.
-		if running > 0 {
-			msg := fmt.Sprintf("Caffe2Job %s is running.", job.Name)
-			err := tc.updateCaffe2JobConditions(job, api.Caffe2JobRunning, caffe2JobRunningReason, msg)
-			if err != nil {
-				glog.Infof("Append caffe2job condition error: %v", err)
-				return err
-			}
-		}
-
-		// All workers are succeeded, leave a succeeded condition.
-		if expected == 0 {
-			msg := fmt.Sprintf("Caffe2Job %s is successfully completed.", job.Name)
-			now := metav1.Now()
-			job.Status.CompletionTime = &now
-			err := tc.updateCaffe2JobConditions(job, api.Caffe2JobSucceeded, caffe2JobSucceededReason, msg)
-			if err != nil {
-				glog.Infof("Append caffe2job condition error: %v", err)
-				return err
-			}
+	// Some workers are still running, leave a running condition.
+	if running > 0 {
+		msg := fmt.Sprintf("Caffe2Job %s is running.", job.Name)
+		err := tc.updateCaffe2JobConditions(job, api.Caffe2JobRunning, caffe2JobRunningReason, msg)
+		if err != nil {
+			glog.Errorf("Append caffe2job condition error: %v", err)
+			return err
 		}
 	}
 
-	// Some workers or pss are failed , leave a failed condition.
+	// All workers are succeeded, leave a succeeded condition.
+	if expected == 0 {
+		msg := fmt.Sprintf("Caffe2Job %s is successfully completed.", job.Name)
+		now := metav1.Now()
+		job.Status.CompletionTime = &now
+		err := tc.updateCaffe2JobConditions(job, api.Caffe2JobSucceeded, caffe2JobSucceededReason, msg)
+		if err != nil {
+			glog.Errorf("Append caffe2job condition error: %v", err)
+			return err
+		}
+	}
+
+	// Some workers are failed , leave a failed condition.
 	if failed > 0 {
 		msg := fmt.Sprintf("Caffe2Job %s is failed.", job.Name)
 		err := tc.updateCaffe2JobConditions(job, api.Caffe2JobFailed, caffe2JobFailedReason, msg)
 		if err != nil {
-			glog.Infof("Append caffe2job condition error: %v", err)
+			glog.Errorf("Append caffe2job condition error: %v", err)
 			return err
 		}
 	}
@@ -72,27 +70,23 @@ func (tc *Controller) updateStatus(job *api.Caffe2Job, rtype api.Caffe2ReplicaTy
 }
 
 // initializeCaffe2ReplicaStatuses initializes the Caffe2ReplicaStatuses for replica.
-func initializeCaffe2ReplicaStatuses(job *api.Caffe2Job, rtype api.Caffe2ReplicaType) {
-	if job.Status.ReplicaStatuses == nil {
-		job.Status.ReplicaStatuses = make(map[api.Caffe2ReplicaType]*api.Caffe2ReplicaStatus)
-	}
-
-	job.Status.ReplicaStatuses[rtype] = &api.Caffe2ReplicaStatus{}
+func initializeCaffe2ReplicaStatuses(job *api.Caffe2Job) {
+	job.Status.ReplicaStatuses = &api.Caffe2ReplicaStatus{}
 }
 
 // updateCaffe2JobReplicaStatuses updates the Caffe2JobReplicaStatuses according to the pod.
-func updateCaffe2JobReplicaStatuses(job *api.Caffe2Job, rtype api.Caffe2ReplicaType, pod *v1.Pod) {
+func updateCaffe2JobReplicaStatuses(job *api.Caffe2Job, pod *v1.Pod) {
 	switch pod.Status.Phase {
 	case v1.PodRunning, v1.PodPending:
-		job.Status.ReplicaStatuses[rtype].Active++
+		job.Status.ReplicaStatuses.Active++
 	case v1.PodSucceeded:
-		job.Status.ReplicaStatuses[rtype].Succeeded++
+		job.Status.ReplicaStatuses.Succeeded++
 	case v1.PodFailed:
-		job.Status.ReplicaStatuses[rtype].Failed++
+		job.Status.ReplicaStatuses.Failed++
 	}
 }
 
 // increaseCaffe2JobReplicaStatusesActive increases active in Caffe2JobReplicaStatuses.
-func increaseCaffe2JobReplicaStatusesActive(job *api.Caffe2Job, rtype api.Caffe2ReplicaType) {
-	job.Status.ReplicaStatuses[rtype].Active++
+func increaseCaffe2JobReplicaStatusesActive(job *api.Caffe2Job) {
+	job.Status.ReplicaStatuses.Active++
 }
