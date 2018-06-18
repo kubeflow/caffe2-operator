@@ -1,0 +1,12 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: caffe2jobs.kubeflow.org
+spec:
+  group: kubeflow.org
+  version: v1alpha1
+  names:
+    kind: Caffe2Job
+    singular: caffe2job
+    plural: caffe2jobs
+
