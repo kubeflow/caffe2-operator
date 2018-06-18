@@ -27,9 +27,10 @@ const (
 	// Value of the APP label that gets applied to a lot of entities.
 	AppLabel = "caffe2-job"
 	// Defaults for the Spec
-	Caffe2Port = 2222
-	Replicas   = 1
-	CAFFE2     = "caffe2"
+	Caffe2Port         = 2222
+	Replicas           = 1
+	CAFFE2             = "caffe2"
+	DefaultCaffe2Image = "kubeflow/caffe2:py2-cuda9.0-cudnn7-ubuntu16.04"
 )
 
 // +genclient
@@ -52,21 +53,25 @@ type Caffe2Job struct {
 }
 
 type Caffe2JobSpec struct {
+	// RuntimeID
 	RuntimeID string
 
+	// Backend specifies the nodes’ communications tool
+	Backend BackendType
+
 	// ReplicaSpecs specifies the Caffe2 replicas to run.
-	ReplicaSpecs map[Caffe2ReplicaType]*Caffe2ReplicaSpec `json:"replicaSpecs"`
+	ReplicaSpecs *Caffe2ReplicaSpec `json:"replicaSpecs"`
 
 	// TerminationPolicy specifies the condition that the caffe2job should be considered finished.
 	TerminationPolicy *TerminationPolicySpec `json:"terminationPolicy,omitempty"`
 }
 
-// Caffe2ReplicaType determines how a set of Caffe2 processes are handled.
-type Caffe2ReplicaType string
+type BackendType string
 
-const (
-	MASTER Caffe2ReplicaType = "MASTER"
-	WORKER Caffe2ReplicaType = "WORKER"
+var (
+	NoneBackendType  BackendType = "none"
+	RedisBackendType BackendType = "redis"
+	NFSBackendType   BackendType = "nfs"
 )
 
 type TerminationPolicySpec struct {
@@ -97,7 +102,7 @@ type Caffe2JobStatus struct {
 	Conditions []Caffe2JobCondition `json:"conditions"`
 
 	// ReplicaStatuses specifies the status of each Caffe2 replica.
-	ReplicaStatuses map[Caffe2ReplicaType]*Caffe2ReplicaStatus `json:"replicaStatuses"`
+	ReplicaStatuses *Caffe2ReplicaStatus `json:"replicaStatuses"`
 
 	// Represents time when the Caffe2Job was acknowledged by the Caffe2Job controller.
 	// It is not guaranteed to be set in happens-before order across separate operations.

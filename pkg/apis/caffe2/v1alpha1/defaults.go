@@ -15,6 +15,9 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -27,32 +30,35 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 func SetDefaults_Caffe2Job(obj *Caffe2Job) {
 	c := &obj.Spec
 
+	if c.RuntimeID == "" {
+		c.RuntimeID = fmt.Sprintf("%d", time.Now().Unix())
+	}
+	// Check that each replica has a Caffe2 container.
+	r := c.ReplicaSpecs
 	/*
-		if c.Caffe2Image == "" {
-			c.Caffe2Image = DefaultCaffe2Image
+		if r.Caffe2Port == nil {
+			r.Caffe2Port = proto.Int32(Caffe2Port)
 		}
 	*/
+	if r.Template.Spec.RestartPolicy == "" {
+		r.Template.Spec.RestartPolicy = "Never"
+	}
 
-	// Check that each replica has a Caffe2 container.
-	for _, r := range c.ReplicaSpecs {
-
-		/*
-				if r.Caffe2Port == nil {
-					r.Caffe2Port = proto.Int32(Caffe2Port)
-				}
-			if string(r.Caffe2ReplicaType) == "" {
-				r.Caffe2ReplicaType = MASTER
-			}
-		*/
-
-		if r.Replicas == nil {
-			r.Replicas = proto.Int32(1)
+	if r.Replicas == nil {
+		r.Replicas = proto.Int32(1)
+	}
+	if c.Backend == "" {
+		if *r.Replicas == 1 {
+			c.Backend = NoneBackendType
+		} else {
+			c.Backend = RedisBackendType
 		}
 	}
+
 	if c.TerminationPolicy == nil {
 		c.TerminationPolicy = &TerminationPolicySpec{
 			Chief: &ChiefSpec{
-				ReplicaName:  "MASTER",
+				ReplicaName:  "WORKER",
 				ReplicaIndex: 0,
 			},
 		}

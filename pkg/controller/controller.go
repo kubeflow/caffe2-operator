@@ -361,22 +361,21 @@ func (c *Controller) reconcileCaffe2Jobs(job *api.Caffe2Job) error {
 	*/
 
 	// Diff current active pods/services with replicas.
-	for rtype, spec := range job.Spec.ReplicaSpecs {
-		err = c.reconcilePods(job, pods, rtype, spec)
+	spec := job.Spec.ReplicaSpecs
+	err = c.reconcilePods(job, pods, spec)
+	if err != nil {
+		glog.Infof("reconcilePods error %v", err)
+		return err
+	}
+
+	/*
+		err = c.reconcileServices(job, services, rtype, spec)
+
 		if err != nil {
-			glog.Infof("reconcilePods error %v", err)
+			glog.Infof("reconcileServices error %v", err)
 			return err
 		}
-
-		/*
-			err = c.reconcileServices(job, services, rtype, spec)
-
-			if err != nil {
-				glog.Infof("reconcileServices error %v", err)
-				return err
-			}
-		*/
-	}
+	*/
 
 	// TODO: Add check here, no need to update the caffe2job if the status hasn't changed since last time.
 	return c.updateStatusHandler(job)

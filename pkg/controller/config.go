@@ -37,7 +37,6 @@ type TaskSpec struct {
 // genCaffe2Config will generate the environment variable Caffe2_CONFIG
 // {
 //     "cluster": {
-//         "master": ["ps1:2222", "ps2:2222"],
 //         "worker": ["worker1:2222", "worker2:2222", "worker3:2222"]
 //     },
 //     "task": {
@@ -77,17 +76,16 @@ func genClusterSpec(job *api.Caffe2Job) ClusterSpec {
 
 	clusterSpec := make(ClusterSpec)
 
-	for rtype, spec := range job.Spec.ReplicaSpecs {
-		rt := strings.ToLower(string(rtype))
-		replicaNames := make([]string, 0, *spec.Replicas)
+	rtype := "worker"
+	spec := job.Spec.ReplicaSpecs
+	replicaNames := make([]string, 0, *spec.Replicas)
 
-		for i := int32(0); i < *spec.Replicas; i++ {
-			host := genGeneralName(jobKey, rt, fmt.Sprintf("%d", i)) + ":" + strconv.Itoa(api.Caffe2Port)
-			replicaNames = append(replicaNames, host)
-		}
-
-		clusterSpec[rt] = replicaNames
+	for i := int32(0); i < *spec.Replicas; i++ {
+		host := genGeneralName(jobKey, rtype, fmt.Sprintf("%d", i)) + ":" + strconv.Itoa(api.Caffe2Port)
+		replicaNames = append(replicaNames, host)
 	}
+
+	clusterSpec[rtype] = replicaNames
 
 	return clusterSpec
 }
