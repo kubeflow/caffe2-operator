@@ -57,7 +57,7 @@ type Caffe2JobSpec struct {
 	RuntimeID string
 
 	// Backend specifies the nodes’ communications tool
-	Backend BackendType
+	Backend *Caffe2BackendSpec `json:"backendSpecs"`
 
 	// ReplicaSpecs specifies the Caffe2 replicas to run.
 	ReplicaSpecs *Caffe2ReplicaSpec `json:"replicaSpecs"`
@@ -66,6 +66,15 @@ type Caffe2JobSpec struct {
 	TerminationPolicy *TerminationPolicySpec `json:"terminationPolicy,omitempty"`
 }
 
+// Caffe2BackendSpec
+type Caffe2BackendSpec struct {
+	Type      BackendType `json:"backendType"`
+	NFSPath   string      `json:"nfsPath"`
+	RedisHost string      `json:"redisHost"`
+	RedisPort uint        `json:"redisPort"`
+}
+
+// BackendType backend type
 type BackendType string
 
 var (
@@ -74,6 +83,7 @@ var (
 	NFSBackendType   BackendType = "nfs"
 )
 
+// TerminationPolicySpec
 type TerminationPolicySpec struct {
 	// Chief policy waits for a particular process (which is the chief) to exit.
 	Chief *ChiefSpec `json:"chief,omitempty"`

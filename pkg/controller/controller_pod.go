@@ -114,6 +114,9 @@ func (tc *Controller) createNewPod(job *api.Caffe2Job, rt, index string, spec *a
 		}
 		podTemplate.Spec.Containers[i].Env = append(
 			podTemplate.Spec.Containers[i].Env,
+			v1.EnvVar{Name: "REDIS_HOST", Value: job.Spec.Backend.RedisHost},
+			v1.EnvVar{Name: "REDIS_PORT", Value: strconv.Itoa(int(job.Spec.Backend.RedisPort))},
+			v1.EnvVar{Name: "NFS_PATH", Value: job.Spec.Backend.NFSPath},
 			v1.EnvVar{Name: "SHARD_ID", Value: index},
 			v1.EnvVar{Name: "NUM_SHARDS", Value: fmt.Sprintf("%d", *spec.Replicas)},
 			v1.EnvVar{Name: "RUN_ID", Value: job.Spec.RuntimeID},

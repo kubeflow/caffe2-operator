@@ -27,6 +27,22 @@ func ValidateCaffe2JobSpec(c *api.Caffe2JobSpec) error {
 		return fmt.Errorf("Invalid termination policy: %v", c.TerminationPolicy)
 	}
 
+	if c.Backend == nil {
+		if *c.ReplicaSpecs.Replicas > 1 {
+			return fmt.Errorf("Invalid backend for multiple pods")
+		}
+	} else {
+		if c.Backend.Type == api.NoneBackendType && *c.ReplicaSpecs.Replicas > 1 {
+			return fmt.Errorf("Invalid backend for multiple pods")
+		}
+		if c.Backend.Type == api.NFSBackendType && c.Backend.NFSPath == "" {
+			return fmt.Errorf("Invalid backend config for NFS backend")
+		}
+		if c.Backend.Type == api.RedisBackendType && c.Backend.RedisHost == "" {
+			return fmt.Errorf("Invalid backend config for redis backend")
+		}
+	}
+
 	chiefExists := false
 
 	// Check that each replica has a Caffe2 container and a chief.

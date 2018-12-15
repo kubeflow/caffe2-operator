@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package controller provides a Kubernetes controller for a TensorFlow job resource.
+// Package controller provides a Kubernetes controller for a Caffe2 job resource.
 package controller
 
 import (

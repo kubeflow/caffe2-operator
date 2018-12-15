@@ -47,11 +47,11 @@ func SetDefaults_Caffe2Job(obj *Caffe2Job) {
 	if r.Replicas == nil {
 		r.Replicas = proto.Int32(1)
 	}
-	if c.Backend == "" {
+	if c.Backend == nil {
 		if *r.Replicas == 1 {
-			c.Backend = NoneBackendType
+			c.Backend = &Caffe2BackendSpec{Type: NoneBackendType}
 		} else {
-			c.Backend = RedisBackendType
+			c.Backend = &Caffe2BackendSpec{Type: RedisBackendType}
 		}
 	}
 

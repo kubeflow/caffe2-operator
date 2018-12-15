@@ -1,8 +1,39 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis-service
+spec:
+  selector:
+    app: redis
+  ports:
+  - protocol: TCP
+    port: 6379
+    targetPort: 6379
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+  app: redis
+spec:
+  containers:
+  - name: redis
+    image: redis
+    ports:
+    - containerPort: 6379
+    resources:
+      limits:
+        cpu: "0.1"
+---
 apiVersion: "kubeflow.org/v1alpha1"
 kind: "Caffe2Job"
 metadata:
   name: "example-job"
 spec:
+  backendSpecs:
+      backendType: redis
+      redisHost: redis-service
+      redisPort: 6379
   replicaSpecs:
       replicas: 1
       template:
@@ -16,10 +47,19 @@ spec:
                 nvidia.com/gpu: 2
             workingDir: /usr/local/caffe2/caffe2/python/examples/
             command: ["python", "resnet50_trainer.py"]
-            args: ["--train_data", "/data/nfs_share/handwritten/mnist-train-nchw-leveldb", "--test_data", "/data/nfs_share/handwritten/mnist-test-nchw-leveldb", "--db_type", "leveldb", "--num_gpus", "2", "--redis_host", "192.168.1.120", "--redis_port", "6379", "--num_shards", "$(NUM_SHARDS)", "--shard_id", "$(SHARD_ID)", "--run_id", "$(RUN_ID)"]
+            args: 
+            - "--train_data=/data/nfs_share/handwritten/mnist-train-nchw-leveldb" 
+            - "--test_data=/data/nfs_share/handwritten/mnist-test-nchw-leveldb"
+            - "--db_type=leveldb"
+            - "--num_gpus=2"
+            - "--redis_host=$(REDIS_HOST)"
+            - "--redis_port=$(REDIS_PORT)"
+            - "--num_shards=$(NUM_SHARDS)"
+            - "--shard_id=$(SHARD_ID)"
+            - "--run_id=$(RUN_ID)"
             volumeMounts:
-             - name: dataset
-               mountPath: /data/nfs_share
+            - name: dataset
+              mountPath: /data/nfs_share
           volumes:
           - name: dataset
             hostPath:
