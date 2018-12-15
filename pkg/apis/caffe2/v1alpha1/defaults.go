@@ -34,21 +34,20 @@ func SetDefaults_Caffe2Job(obj *Caffe2Job) {
 		c.RuntimeID = fmt.Sprintf("%d", time.Now().Unix())
 	}
 	// Check that each replica has a Caffe2 container.
-	r := c.ReplicaSpecs
 	/*
 		if r.Caffe2Port == nil {
 			r.Caffe2Port = proto.Int32(Caffe2Port)
 		}
 	*/
-	if r.Template.Spec.RestartPolicy == "" {
-		r.Template.Spec.RestartPolicy = "Never"
+	if c.ReplicaSpecs.Template != nil && c.ReplicaSpecs.Template.Spec.RestartPolicy == "" {
+		c.ReplicaSpecs.Template.Spec.RestartPolicy = "Never"
 	}
 
-	if r.Replicas == nil {
-		r.Replicas = proto.Int32(1)
+	if c.ReplicaSpecs.Replicas == nil {
+		c.ReplicaSpecs.Replicas = proto.Int32(1)
 	}
 	if c.Backend == nil {
-		if *r.Replicas == 1 {
+		if *c.ReplicaSpecs.Replicas == 1 {
 			c.Backend = &Caffe2BackendSpec{Type: NoneBackendType}
 		} else {
 			c.Backend = &Caffe2BackendSpec{Type: RedisBackendType}

@@ -64,7 +64,7 @@ func getPodSlices(pods []*v1.Pod, replicas int) [][]*v1.Pod {
 		}
 		index, err := strconv.Atoi(pod.Labels[caffe2ReplicaIndexLabel])
 		if err != nil {
-			glog.Warning("Error when strconv.Atoi: %v", err)
+			glog.Warningf("Error when strconv.Atoi: %v", err)
 			continue
 		}
 		if index < 0 || index >= replicas {

@@ -11,7 +11,7 @@ go:
   - "1.9"
   - "1.10"
 
-go_import_path: github.com/kubeflow/tf-operator
+go_import_path: github.com/kubeflow/caffe2-operator
 
 install:
   # get coveralls.io support
@@ -20,11 +20,14 @@ install:
   - gometalinter --install
 
 script:
-  - go build -o tf-operator github.com/kubeflow/tf-operator/cmd/tf-operator
+  - make
   - gometalinter --config=linter_config.json ./pkg/...
   # We customize the build step because by default
   # Travis runs go test -v ./... which will include the vendor
   # directory.
   # With go 1.9 vendor will be automatically excluded.
   # For now though we just run all tests in pkg.
-  - $GOPATH/bin/goveralls -service=travis-ci -v -package ./pkg/...
+  # And we can not use ** because goveralls uses filepath.Match
+  # to match ignore files and it does not support it.
+  - goveralls -service=travis-ci -v -package ./pkg/... -ignore "pkg/client/*/*.go,pkg/client/*/*/*.go,pkg/client/*/*/*/*.go,pkg/client/*/*/*/*/*.go,pkg/client/*/*/*/*/*/*.go,pkg/client/*/*/*/*/*/*/*.go,pkg/apis/caffe2/*/zz_generated.*.go"
+

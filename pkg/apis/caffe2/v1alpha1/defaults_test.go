@@ -19,58 +19,54 @@ import (
 	"testing"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/kubeflow/tf-operator/pkg/util"
+	"github.com/kubeflow/caffe2-operator/pkg/util"
 	"k8s.io/api/core/v1"
 )
 
-func TestSetDefaults_TFJob(t *testing.T) {
+func TestSetDefaults_Caffe2Job(t *testing.T) {
 	type testCase struct {
-		in       *TFJob
-		expected *TFJob
+		in       *Caffe2Job
+		expected *Caffe2Job
 	}
 
 	testCases := []testCase{
 		{
-			in: &TFJob{
-				Spec: TFJobSpec{
-					ReplicaSpecs: []*TFReplicaSpec{
-						{
-							Template: &v1.PodTemplateSpec{
-								Spec: v1.PodSpec{
-									Containers: []v1.Container{
-										{
-											Name: "tensorflow",
-										},
+			in: &Caffe2Job{
+				Spec: Caffe2JobSpec{
+					ReplicaSpecs: &Caffe2ReplicaSpec{
+						Template: &v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{
+										Name: "tensorflow",
 									},
 								},
 							},
 						},
 					},
-					TFImage: "tensorflow/tensorflow:1.3.0",
 				},
 			},
-			expected: &TFJob{
-				Spec: TFJobSpec{
-					ReplicaSpecs: []*TFReplicaSpec{
-						{
-							Replicas: proto.Int32(1),
-							TFPort:   proto.Int32(2222),
-							Template: &v1.PodTemplateSpec{
-								Spec: v1.PodSpec{
-									Containers: []v1.Container{
-										{
-											Name: "tensorflow",
-										},
+			expected: &Caffe2Job{
+				Spec: Caffe2JobSpec{
+					Backend: &Caffe2BackendSpec{
+						Type: NoneBackendType,
+					},
+					ReplicaSpecs: &Caffe2ReplicaSpec{
+						Replicas: proto.Int32(1),
+						Template: &v1.PodTemplateSpec{
+							Spec: v1.PodSpec{
+								Containers: []v1.Container{
+									{
+										Name: "tensorflow",
 									},
 								},
+								RestartPolicy: "Never",
 							},
-							TFReplicaType: MASTER,
 						},
 					},
-					TFImage: "tensorflow/tensorflow:1.3.0",
 					TerminationPolicy: &TerminationPolicySpec{
 						Chief: &ChiefSpec{
-							ReplicaName:  "MASTER",
+							ReplicaName:  "WORKER",
 							ReplicaIndex: 0,
 						},
 					},
@@ -78,29 +74,22 @@ func TestSetDefaults_TFJob(t *testing.T) {
 			},
 		},
 		{
-			in: &TFJob{
-				Spec: TFJobSpec{
-					ReplicaSpecs: []*TFReplicaSpec{
-						{
-							TFReplicaType: PS,
-						},
-					},
-					TFImage: "tensorflow/tensorflow:1.3.0",
+			in: &Caffe2Job{
+				Spec: Caffe2JobSpec{
+					ReplicaSpecs: &Caffe2ReplicaSpec{},
 				},
 			},
-			expected: &TFJob{
-				Spec: TFJobSpec{
-					ReplicaSpecs: []*TFReplicaSpec{
-						{
-							Replicas:      proto.Int32(1),
-							TFPort:        proto.Int32(2222),
-							TFReplicaType: PS,
-						},
+			expected: &Caffe2Job{
+				Spec: Caffe2JobSpec{
+					Backend: &Caffe2BackendSpec{
+						Type: NoneBackendType,
 					},
-					TFImage: "tensorflow/tensorflow:1.3.0",
+					ReplicaSpecs: &Caffe2ReplicaSpec{
+						Replicas: proto.Int32(1),
+					},
 					TerminationPolicy: &TerminationPolicySpec{
 						Chief: &ChiefSpec{
-							ReplicaName:  "MASTER",
+							ReplicaName:  "WORKER",
 							ReplicaIndex: 0,
 						},
 					},
@@ -110,7 +99,8 @@ func TestSetDefaults_TFJob(t *testing.T) {
 	}
 
 	for _, c := range testCases {
-		SetDefaults_TFJob(c.in)
+		SetDefaults_Caffe2Job(c.in)
+		c.in.Spec.RuntimeID = c.expected.Spec.RuntimeID
 		if !reflect.DeepEqual(c.in, c.expected) {
 			t.Errorf("Want\n%v; Got\n %v", util.Pformat(c.expected), util.Pformat(c.in))
 		}
