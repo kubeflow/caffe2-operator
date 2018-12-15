@@ -61,7 +61,11 @@ type TaskSpec struct {
 // }
 func genCaffe2ConfigJSONStr(job *api.Caffe2Job, rtype, index string) string {
 	// Configure the CAFFE2_CONFIG environment variable.
-	i, _ := strconv.ParseInt(index, 0, 32)
+	i, err := strconv.ParseInt(index, 0, 32)
+	if err != nil {
+
+		return ""
+	}
 
 	config := Caffe2Config{
 		Cluster: genClusterSpec(job),

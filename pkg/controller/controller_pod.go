@@ -208,7 +208,11 @@ func filterPodsForCaffe2ReplicaType(pods []*v1.Pod, caffe2ReplicaType string) []
 	caffe2ReplicaSelector.MatchLabels[caffe2ReplicaTypeLabel] = caffe2ReplicaType
 
 	for _, pod := range pods {
-		selector, _ := metav1.LabelSelectorAsSelector(caffe2ReplicaSelector)
+		selector, err := metav1.LabelSelectorAsSelector(caffe2ReplicaSelector)
+		if err != nil {
+			glog.Warningf("Failed to do metav1.LabelSelectorAsSelector: %v", err)
+			continue
+		}
 		if !selector.Matches(labels.Set(pod.Labels)) {
 			continue
 		}
