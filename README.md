@@ -23,7 +23,10 @@ kind: "Caffe2Job"
 metadata:
   name: "example-job"
 spec:
-  backend: "redis"
+  backendSpecs:
+      backendType: redis
+      redisHost: redis-service
+      redisPort: 6379
   replicaSpecs:
       replicas: 2
       template:
@@ -73,6 +76,9 @@ spec:
         value: "1529307087"
       - name: CAFFE2_CONFIG
         value: '{"cluster":{"worker":["default-example-job-worker-0:2222"]},"task":{"type":"worker","index":0}}'
+      - name: REDIS_HOST
+        value: "redis-service"
+        value: "1529307087"
     ...
 ```
 
