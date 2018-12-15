@@ -1,4 +1,6 @@
 # caffe2-operator
+[![Build Status](https://travis-ci.com/kubeflow/caffe2-operator.svg?branch=master)](https://travis-ci.org/kubeflow/caffe2-operator) [![Go Report Card](https://goreportcard.com/badge/github.com/kubeflow/caffe2-operator)](https://goreportcard.com/report/github.com/kubeflow/caffe2-operator)
+
 Experimental repository for a caffe2 operator
 
 ## Motivation
