@@ -44,7 +44,7 @@ spec:
             command: ["python", "resnet50_trainer.py"]
 ```
 
-A full resnet50 trainer example is [here](./examples/resnet50.yaml).
+A full resnet50 trainer with redis example is [here](./examples/resnet50_redis.yaml), and resnet50 trainer with nfs example is [here](./examples/resnet50_nfs.yaml).
 
 This Caffe2Job resembles the existing TFJob for the tf-operator.  The main differences being the omission of the parameter server replica type, and the addition of `backend` options.
 
@@ -126,13 +126,14 @@ $ make_mnist_db --channel_first --db leveldb --image_file data/mnist/t10k-images
 ### Run the job
 
 ```
-$ kubectl apply -f ./examples/resnet50.yaml
+$ kubectl apply -f ./examples/resnet50_nfs.yaml
 $ kubectl get caffe2jobs
 NAME          AGE
 example-job   29m
 $ kubectl get pods
 NAME                READY     STATUS    RESTARTS   AGE
 example-job-pdcbs   1/1       Running   0          29m
+example-job-abcdc   1/1       Running   0          29m
 ```
 
 In this example, we use `hostNetwork = true`, it is not the better solution, but it will train more quickly. Because the overlay network will reduce some performance.
