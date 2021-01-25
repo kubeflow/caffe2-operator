@@ -29,3 +29,5 @@ verify: generate-code
 generate-code:
 	hack/update-codegen.sh
 
+build-dependabot:
+	python3 hack/create_dependabot.py

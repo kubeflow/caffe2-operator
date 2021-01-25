@@ -1,0 +1,86 @@
+updates:
+- assignees:
+  - caesarxuchao
+  - deads2k
+  - krousey
+  - lavalamp
+  - smarterclayton
+  - sttts
+  - liggitt
+  directory: vendor/k8s.io/client-go/examples/in-cluster-client-configuration
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - thockin
+  - lavalamp
+  - smarterclayton
+  - wojtek-t
+  - deads2k
+  - yujuhong
+  - derekwaynecarr
+  - caesarxuchao
+  - vishh
+  - mikedanese
+  - liggitt
+  - nikhiljindal
+  - gmarek
+  - erictune
+  - davidopp
+  - pmorie
+  - sttts
+  - dchen1107
+  - saad-ali
+  - zmerlynn
+  - luxas
+  - janetkuo
+  - justinsb
+  - roberthbailey
+  - ncdc
+  - tallclair
+  - yifan-gu
+  - eparis
+  - mwielgus
+  - timothysc
+  - feiskyer
+  - jlowdermilk
+  - soltysh
+  - piosz
+  - jsafrane
+  schedule:
+    interval: daily
+- assignees:
+  - deads2k
+  - lavalamp
+  - sttts
+  directory: vendor/k8s.io/apiextensions-apiserver/artifacts/simple-image
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - deads2k
+  - sttts
+  - enisoc
+  schedule:
+    interval: daily
+- assignees:
+  - gaocegege
+  - johnugeorge
+  - carmark
+  directory: vendor/golang.org/x/net/http2
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - johnugeorge
+  schedule:
+    interval: daily
+- assignees:
+  - gaocegege
+  - johnugeorge
+  - carmark
+  directory: vendor/golang.org/x/sys/unix/linux
+  open-pull-requests-limit: 10
+  package-ecosystem: docker
+  reviewers:
+  - johnugeorge
+  schedule:
+    interval: daily
+version: 2
