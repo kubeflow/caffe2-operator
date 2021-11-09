@@ -1,3 +1,8 @@
+## :warning: **kubeflow/caffe2-operator is not maintained**
+
+This repository has been deprecated, and will be [archived](https://github.com/kubeflow/community/issues/479) soon (Nov 30th, 2021). 
+
+
 # caffe2-operator
 [![Build Status](https://travis-ci.com/kubeflow/caffe2-operator.svg?branch=master)](https://travis-ci.org/kubeflow/caffe2-operator) [![Go Report Card](https://goreportcard.com/badge/github.com/kubeflow/caffe2-operator)](https://goreportcard.com/report/github.com/kubeflow/caffe2-operator)
 
